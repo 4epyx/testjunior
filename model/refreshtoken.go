@@ -1,13 +1,6 @@
 package model
 
-/*
-RefreshToken represents a refresh token data, stored in database
-
-	Id -
-	UserGuid - user GUID
-	Expiration - expiration time of the token in unix format
-	Token - Hash of the token
-*/
+// RefreshToken represents a refresh token data, stored in database
 type RefreshToken struct {
 	//Id is a token UUID
 	Id string `json:"id" bson:"_id"`
