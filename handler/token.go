@@ -14,10 +14,10 @@ type Tokens struct {
 }
 
 type TokenHandler struct {
-	service service.TokenService
+	service *service.TokenService
 }
 
-func NewTokenHandler(service service.TokenService) *TokenHandler {
+func NewTokenHandler(service *service.TokenService) *TokenHandler {
 	return &TokenHandler{service: service}
 }
 
