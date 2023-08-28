@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/4epyx/testtask/handler"
-	"github.com/4epyx/testtask/middleware"
 	"github.com/4epyx/testtask/repository/mongorepo"
 	"github.com/4epyx/testtask/service"
 	"github.com/4epyx/testtask/util"
 	"github.com/4epyx/testtask/util/database"
+	"github.com/4epyx/testtask/util/http/router"
 	"github.com/rs/zerolog"
 )
 
@@ -61,18 +61,9 @@ func main() {
 		panic(err)
 	}
 	logger := zerolog.New(logFile)
-	mux := setupRoutes(h, &logger)
+	mux := router.SetupRoutes(h, &logger)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%s", envs["SERVER_PORT"]), mux); err != nil {
 		panic(err)
 	}
-}
-
-func setupRoutes(h *handler.TokenHandler, logger *zerolog.Logger) *http.ServeMux {
-	logMiddleware := middleware.NewLogMiddleware(logger)
-	mux := http.NewServeMux()
-	mux.Handle("/token/generate", logMiddleware.Log(http.HandlerFunc(h.GetAccessAndRefreshTokens)))
-	mux.Handle("/token/refresh", logMiddleware.Log(http.HandlerFunc(h.RefreshToken)))
-
-	return mux
 }
