@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// SetupMongoConnection create a connection to MongoDB by the given URI
 func SetupMongoConnection(ctx context.Context, dbUri string) (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()

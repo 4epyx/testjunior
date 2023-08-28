@@ -8,15 +8,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// LogMiddleware is a middleware for logging with the given logger.
+// It logs request's method, time, path, latency, status, and error message, if response status is 500 (Internal Server Error)
 type LogMiddleware struct {
 	l *zerolog.Logger
 }
 
+// NewLogMiddleware is constructor of LogMiddleware
 func NewLogMiddleware(logger *zerolog.Logger) *LogMiddleware {
 
 	return &LogMiddleware{l: logger}
 }
 
+// Log is a wrapper for http.Handler which write logs
 func (m *LogMiddleware) Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
