@@ -133,7 +133,7 @@ func (s *TokenService) RefreshToken(ctx context.Context, refreshToken string) (u
 	}
 
 	// delete used refresh token from the database to avoid reuse
-	if err := s.repo.DeleteToken(ctx, token.UserGuid); err != nil {
+	if err := s.repo.DeleteToken(ctx, token.Id); err != nil {
 		return util.Tokens{}, err
 	}
 
