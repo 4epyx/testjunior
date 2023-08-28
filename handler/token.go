@@ -93,7 +93,7 @@ func (h *TokenHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err = h.service.RefreshToken(r.Context(), data.RefreshToken)
 	if err != nil {
-		http.Error(w, fmt.Sprintf(`{"status": "error occured while refreshing token: %s"}`, err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf(`{"status": "error occured while refreshing token: %s"}`, err.Error()), http.StatusBadRequest)
 		return
 	}
 
