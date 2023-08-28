@@ -3,11 +3,9 @@ package handler_test
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -15,19 +13,10 @@ import (
 	"github.com/4epyx/testtask/handler"
 	"github.com/4epyx/testtask/repository/mongorepo"
 	"github.com/4epyx/testtask/service"
+	"github.com/4epyx/testtask/util"
+	"github.com/4epyx/testtask/util/database"
 	"github.com/stretchr/testify/suite"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-type envData struct {
-	DbUrl string
-
-	accessTokenTTL     time.Duration
-	refreshTokenTTL    time.Duration
-	accessTokenSecret  []byte
-	refreshTokenSecret []byte
-}
 
 type TokenTest struct {
 	suite.Suite
@@ -40,21 +29,26 @@ type TokenTest struct {
 func (t *TokenTest) SetupTest() {
 	t.ctx = context.Background()
 
-	envVars, err := getTestEnv()
+	envVars, errs := util.ParseEnv("TEST_DB_URI", "ACCESS_TOKEN_TTL", "REFRESH_TOKEN_TTL", "ACCESS_TOKEN_SECRET", "REFRESH_TOKEN_SECRET")
+	if len(errs) != 0 {
+		t.T().Fatal(errs)
+	}
+
+	accessTokenTTL, err := time.ParseDuration(envVars["ACCESS_TOKEN_TTL"])
+	if err != nil {
+		t.T().Fatal(err)
+	}
+	refreshTokenTTL, err := time.ParseDuration(envVars["REFRESH_TOKEN_TTL"])
 	if err != nil {
 		t.T().Fatal(err)
 	}
 
-	opts := options.Client().ApplyURI(envVars.DbUrl)
-	conn, err := mongo.Connect(t.ctx, opts)
-	if err != nil {
-		t.T().Fatal(err)
-	}
+	conn, err := database.SetupMongoConnection(t.ctx, envVars["TEST_DB_URI"])
 
 	collection := conn.Database("testjunior").Collection("refresh_tokens")
 	repo := mongorepo.NewMongoRTRepo(collection)
 
-	tokenService := service.NewTokenService(repo, envVars.accessTokenTTL, envVars.refreshTokenTTL, envVars.accessTokenSecret, envVars.refreshTokenSecret)
+	tokenService := service.NewTokenService(repo, accessTokenTTL, refreshTokenTTL, []byte(envVars["ACCESS_TOKEN_SECRET"]), []byte(envVars["REFRESH_TOKEN_SECRET"]))
 
 	t.refToken, err = tokenService.GenerateRefreshToken(t.ctx, "f022c263-4796-4bdc-92ac-4c74020183b3")
 	t.T().Log(t.refToken)
@@ -63,51 +57,6 @@ func (t *TokenTest) SetupTest() {
 	}
 
 	t.handler = handler.NewTokenHandler(tokenService)
-}
-
-func getTestEnv() (envData, error) {
-	data := envData{}
-	ok := true
-
-	data.DbUrl, ok = os.LookupEnv("TEST_DB_URL")
-	if !ok {
-		return data, errors.New("couldn't connect to database")
-	}
-
-	strAccessTokenTTL, ok := os.LookupEnv("ACCESS_TOKEN_TTL")
-	if !ok {
-		strAccessTokenTTL = "1h"
-	}
-	strRefreshTokenTTL, ok := os.LookupEnv("REFRESH_TOKEN_TTL")
-	if !ok {
-		strRefreshTokenTTL = "720h"
-	}
-
-	var err error
-	data.accessTokenTTL, err = time.ParseDuration(strAccessTokenTTL)
-	if err != nil {
-		return data, err
-	}
-
-	data.refreshTokenTTL, err = time.ParseDuration(strRefreshTokenTTL)
-	if err != nil {
-		return data, err
-	}
-
-	strAccessTokenSecret, ok := os.LookupEnv("ACCESS_TOKEN_SECRET")
-	if !ok {
-		return data, err
-	}
-
-	strRefreshTokenSecret, ok := os.LookupEnv("REFRESH_TOKEN_SECRET")
-	if !ok {
-		return data, err
-	}
-
-	data.accessTokenSecret = []byte(strAccessTokenSecret)
-	data.refreshTokenSecret = []byte(strRefreshTokenSecret)
-
-	return data, nil
 }
 
 func (t *TokenTest) TestGetAccessAndRefreshTokens() {
