@@ -8,6 +8,7 @@ import (
 
 	"github.com/4epyx/testtask/model"
 	"github.com/4epyx/testtask/repository"
+	"github.com/4epyx/testtask/util"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -92,51 +93,54 @@ func (s *TokenService) GenerateRefreshToken(ctx context.Context, userGuid string
 }
 
 // RefreshToken accept refresh token and returns new pair of tokens (access and refresh) or error if something goes wrong
-func (s *TokenService) RefreshToken(ctx context.Context, refreshToken string) (string, string, error) {
+func (s *TokenService) RefreshToken(ctx context.Context, refreshToken string) (util.Tokens, error) {
 	// decode base64 representation of the refresh JWT
 	decoded, err := base64.StdEncoding.DecodeString(refreshToken)
 	if err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	// get data form refresh token
 	claims, err := s.getJwtClaims(string(decoded), s.refreshJwtSecretKey)
 	if err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	// get UUID of the token
 	id, ok := claims["id"]
 	if !ok {
-		return "", "", errors.New("invalid refresh token")
+		return util.Tokens{}, errors.New("invalid refresh token")
 	}
 
 	token, err := s.repo.GetTokenById(ctx, id.(string))
 	if err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	// compare hash of token from the database and token from parameters
 	if err := bcrypt.CompareHashAndPassword([]byte(token.Token), []byte(refreshToken)); err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	newAccessToken, err := s.GenerateAccessToken(ctx, token.UserGuid)
 	if err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	newRefreshToken, err := s.GenerateRefreshToken(ctx, token.UserGuid)
 	if err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
 	// delete used refresh token from the database to avoid reuse
 	if err := s.repo.DeleteToken(ctx, token.UserGuid); err != nil {
-		return "", "", err
+		return util.Tokens{}, err
 	}
 
-	return newAccessToken, newRefreshToken, nil
+	return util.Tokens{
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, nil
 }
 
 // generateJwt returns new JWT, generated with claims, signed with the given method and key
