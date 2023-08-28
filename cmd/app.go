@@ -52,7 +52,7 @@ func main() {
 
 	// setup repository, service and handler
 	repo := mongorepo.NewMongoRTRepo(db.Database(envs["DB_NAME"]).Collection("refresh_tokens"))
-	s := service.NewTokenService(repo, accessTokenTTL, refreshTokenTTL, []byte(envs["ACCESS_TOKEN_SECRET"]), []byte(envs["ERFRESH_TOKEN_SECRET"]))
+	s := service.NewTokenService(repo, accessTokenTTL, refreshTokenTTL, []byte(envs["ACCESS_TOKEN_SECRET"]), []byte(envs["REFRESH_TOKEN_SECRET"]))
 	h := handler.NewTokenHandler(s)
 
 	// Create and open file for logs
