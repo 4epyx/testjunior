@@ -27,21 +27,18 @@ func (h *TokenHandler) GetAccessAndRefreshTokens(w http.ResponseWriter, r *http.
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": "couldn't read body"}`))
+		http.Error(w, `{"status": "couldn't read body"}`, http.StatusBadRequest)
 		return
 	}
 
 	data := &bodyData{}
 	if err := json.Unmarshal(body, data); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": "couldn't parse body to JSON"}`))
+		http.Error(w, `{"status": "couldn't parse body"}`, http.StatusBadRequest)
 		return
 	}
 
 	if _, err := uuid.Parse(data.UserGuid); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(fmt.Sprintf(`{"status": "invalid user GUID %s"}`, data.UserGuid)))
+		http.Error(w, fmt.Sprintf(`{"status": "invalid user GUID %s"}`, data.UserGuid), http.StatusBadRequest)
 		return
 	}
 
@@ -49,22 +46,19 @@ func (h *TokenHandler) GetAccessAndRefreshTokens(w http.ResponseWriter, r *http.
 
 	tokens.AccessToken, err = h.service.GenerateAccessToken(r.Context(), data.UserGuid)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": "error occured while generating access token"}`))
+		http.Error(w, `{"status": "error occured while generating access token"}`, http.StatusInternalServerError)
 		return
 	}
 
 	tokens.RefreshToken, err = h.service.GenerateRefreshToken(r.Context(), data.UserGuid)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": "error occured while generating refresh token"}`))
+		http.Error(w, `{"status": "error occured while generating refresh token"}`, http.StatusInternalServerError)
 		return
 	}
 
 	jsonResp, err := json.Marshal(tokens)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": "error occured while marshaling JSON"}`))
+		http.Error(w, `{"status": "error occured while marshaling JSON"}`, http.StatusInternalServerError)
 		return
 	}
 
@@ -81,20 +75,17 @@ func (h *TokenHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": "couldn't read body"}`))
+		http.Error(w, `{"status": "couldn't read body"}`, http.StatusBadRequest)
 		return
 	}
 
 	data := &bodyData{}
 	if err := json.Unmarshal(body, data); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": "couldn't parse body to JSON"}`))
+		http.Error(w, `{"status": "couldn't parse body to JSON"}`, http.StatusBadRequest)
 		return
 	}
 	if data.RefreshToken == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": "requst body not contains refresh token"}`))
+		http.Error(w, `{"status": "requst body not contains refresh token"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -102,15 +93,13 @@ func (h *TokenHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err = h.service.RefreshToken(r.Context(), data.RefreshToken)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(fmt.Sprintf(`{"status": "error occured while refreshing token: %s"}`, err.Error())))
+		http.Error(w, fmt.Sprintf(`{"status": "error occured while refreshing token: %s"}`, err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	jsonResp, err := json.Marshal(tokens)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": "error occured while marshaling JSON"}`))
+		http.Error(w, `{"status": "error occured while marshaling JSON"}`, http.StatusInternalServerError)
 		return
 	}
 
