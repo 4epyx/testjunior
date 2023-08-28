@@ -7,13 +7,9 @@ import (
 	"net/http"
 
 	"github.com/4epyx/testtask/service"
+	"github.com/4epyx/testtask/util"
 	"github.com/google/uuid"
 )
-
-type Tokens struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
 
 type TokenHandler struct {
 	service *service.TokenService
@@ -48,7 +44,7 @@ func (h *TokenHandler) GetAccessAndRefreshTokens(w http.ResponseWriter, r *http.
 		return
 	}
 
-	tokens := Tokens{}
+	tokens := util.Tokens{}
 
 	tokens.AccessToken, err = h.service.GenerateAccessToken(r.Context(), data.UserGuid)
 	if err != nil {
@@ -98,9 +94,9 @@ func (h *TokenHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokens := Tokens{}
+	tokens := util.Tokens{}
 
-	tokens.AccessToken, tokens.RefreshToken, err = h.service.RefreshToken(r.Context(), data.RefreshToken)
+	tokens, err = h.service.RefreshToken(r.Context(), data.RefreshToken)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf(`{"status": "error occured while refreshing token: %s"}`, err.Error())))
