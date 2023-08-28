@@ -2,6 +2,7 @@ package mongorepo
 
 import (
 	"context"
+	"errors"
 
 	"github.com/4epyx/testtask/model"
 	"go.mongodb.org/mongo-driver/bson"
@@ -38,7 +39,14 @@ func (r MongoRefreshTokenRepository) CreateToken(ctx context.Context, token mode
 
 func (r MongoRefreshTokenRepository) DeleteToken(ctx context.Context, tokenId string) error {
 	filter := bson.D{{Key: "_id", Value: tokenId}}
-	_, err := r.collection.DeleteOne(ctx, filter)
+	res, err := r.collection.DeleteOne(ctx, filter)
+	if err != nil {
+		return err
+	}
 
-	return err
+	if res.DeletedCount == 0 {
+		return errors.New("document not found")
+	}
+
+	return nil
 }
